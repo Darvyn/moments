@@ -1,12 +1,13 @@
 <template>
   <div class="flex flex-col gap-4 p-2 sm:p-4">
     <div class="flex flex-col gap-2">
-      <Label for="title" class="text-right text-gray-400 text-xs my-2" v-if="version">版本号:{{ version }}</Label>
-      
+      <Label for="version" class="text-right text-gray-400 text-xs my-2" v-if="versionData">版本号:v{{ versionData.version
+        }}</Label>
+
     </div>
     <div class="flex flex-col gap-2">
-      <Label for="title" class="font-bold">管理员账号</Label>
-      <Input type="text" id="title" placeholder="管理员账号" autocomplete="off" v-model="state.username" />
+      <Label for="username" class="font-bold">管理员账号</Label>
+      <Input type="text" id="username" placeholder="管理员账号" autocomplete="off" v-model="state.username" />
     </div>
     <div class="flex flex-col gap-2">
       <Label for="title" class="font-bold">网站标题</Label>
@@ -14,21 +15,26 @@
     </div>
     <div class="flex flex-col gap-2 border rounded p-2">
       <Label for="avatarUrl" class="font-bold">头像</Label>
-      <Input type="file" id="avatarUrl" @change="(e: Event) => { uploadImgs(e, 'avatarUrl') }" />
+      <Label class="w-full text-left p-2 shadow-sm cursor-pointer border rounded-sm" for="avatarUrl">选择文件</Label>
+      <Input type="file" id="avatarUrl" @change="(e: Event) => { uploadImgs(e, 'avatarUrl') }" class="hidden" />
       <Label for="avatarUrl-input" class="font-medium">或者输入在线地址</Label>
       <Input type="text" id="avatarUrl-input" placeholder="或者填入在线地址" autocomplete="off" v-model="state.avatarUrl" />
       <img :src="state.avatarUrl" alt="avatar" class="w-[70px] h-[70px] rounded-xl" v-if="state.avatarUrl" />
     </div>
     <div class="flex flex-col gap-2 border rounded p-2">
       <Label for="favicon" class="font-bold">Favicon</Label>
-      <Input type="file" id="favicon" autocomplete="off" @change="(e: Event) => { uploadImgs(e, 'favicon') }" />
+      <Label class="w-full text-left p-2 shadow-sm cursor-pointer border rounded-sm" for="favicon">选择文件</Label>
+      <Input type="file" id="favicon" autocomplete="off" @change="(e: Event) => { uploadImgs(e, 'favicon') }"
+        class="hidden" />
       <Label for="favicon-input" class="font-medium">或者输入在线地址</Label>
       <Input type="text" id="favicon-input" placeholder="或者填入在线地址" autocomplete="off" v-model="state.favicon" />
       <img class="max-w-[50px] max-h-[50px]" v-if="state.favicon" :src="state.favicon" alt="" />
     </div>
     <div class="flex flex-col gap-2 border rounded p-2">
       <Label for="coverUrl" class="font-bold">顶部图片</Label>
-      <Input type="file" id="coverUrl" autocomplete="off" @change="(e: Event) => { uploadImgs(e, 'coverUrl') }" />
+      <Label class="w-full text-left p-2 shadow-sm cursor-pointer border rounded-sm" for="coverUrl">选择文件</Label>
+      <Input type="file" id="coverUrl" autocomplete="off" @change="(e: Event) => { uploadImgs(e, 'coverUrl') }"
+        class="hidden" />
       <Label for="coverUrl-input" class="font-medium">或者输入在线地址</Label>
       <Input type="text" id="coverUrl-input" placeholder="或者填入在线地址" autocomplete="off" v-model="state.coverUrl" />
       <img class="w-full " v-if="state.avatarUrl" :src="state.coverUrl" alt="" />
@@ -105,9 +111,81 @@
         <Label for="thumbnailSuffix" class="font-bold">后缀</Label>
         <Input type="text" id="thumbnailSuffix" placeholder="" autocomplete="off" v-model="state.thumbnailSuffix" />
       </div>
-
-
     </template>
+    <Collapsible>
+      <CollapsibleTrigger>
+        <div class="cursor-pointer font-bold text-sm flex justify-between items-center">
+          <div>基础设置</div>
+          <ChevronsUpDown :size=16 />
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <table class="w-full border my-2 text-xs">
+          <thead>
+            <tr class="*:border *:p-2 *:bg-gray-300">
+              <td>配置项(去掉了前缀`NUXT_PUBLIC`)</td>
+              <td>内容</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="*:border *:p-2">
+              <td>PAGE_SIZE(分页大小)</td>
+              <td>{{ $config.public.pageSize }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>MOMENTS_COMMENT_ENABLE(是否可以评论)</td>
+              <td>{{ $config.public.momentsCommentEnable }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>MOMENTS_SHOW_COMMENT(是否展示评论)</td>
+              <td>{{ $config.public.momentsShowComment }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>MOMENTS_COMMENT_MAX_LENGTH(评论最大字数)</td>
+              <td>{{ $config.public.momentsCommentMaxLength }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>MOMENTS_COMMENT_ORDER_BY(评论排序)</td>
+              <td>{{ $config.public.momentsCommentOrderBy }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>MOMENTS_TOOLBAR_ENABLE_DOUBAN(是否显示豆瓣按钮)</td>
+              <td>{{ $config.public.momentsToolbarEnableDouban }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>MOMENTS_TOOLBAR_ENABLE_MUSIC163(是否显示音乐按钮)</td>
+              <td>{{ $config.public.momentsToolbarEnableMusic163 }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>MOMENTS_TOOLBAR_ENABLE_VIDEO(是否显示视频按钮)</td>
+              <td>{{ $config.public.momentsToolbarEnableVideo }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>MOMENTS_MAX_LINE(发言最大行数,超过折叠)</td>
+              <td>{{ $config.public.momentsMaxLine }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>GOOGLE_RECAPTCHA_SITE_KEY(RECAPTCHA网站key)</td>
+              <td>{{ $config.public.googleRecaptchaSiteKey }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>SITE_URL(本站访问地址站点地址)</td>
+              <td>{{ $config.public.siteUrl }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>NOTIFY_BY_EMAIL_ENABLE(是否开启评论邮件通知)</td>
+              <td>{{ $config.public.notifyByEmailEnable }}</td>
+            </tr>
+            <tr class="*:border *:p-2">
+              <td>ALIYUN_TEXT_JUDGE_ENABLE(是否开启评论内容阿里云鉴权)</td>
+              <td>{{ $config.public.aliyunTextJudgeEnable }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </CollapsibleContent>
+
+    </Collapsible>
+
 
     <div class="flex flex-col gap-2 ">
       <Button @click="saveSettings">保存</Button>
@@ -121,20 +199,21 @@ import { settingsUpdateEvent } from '~/lib/event'
 const token = useCookie('token')
 import { useStorage } from "@vueuse/core";
 import type { User } from '~/lib/types';
+import { ChevronsUpDown } from 'lucide-vue-next'
 
-const version = process.env.VERSION||''
+const { data: versionData } = await useAsyncData('version', async () => $fetch('/api/version'))
 
 const userinfo = useState<User>('userinfo')
 
 useHead({
-  title: '设置-'+(userinfo.value.title || '极简朋友圈'),
+  title: '设置-' + (userinfo.value.title || '极简朋友圈'),
 })
 
 const enableS3 = useStorage("enableS3", false);
 
 
 const state = reactive({
-  username:'',
+  username: '',
   coverUrl: '',
   avatarUrl: '',
   nickname: '',
@@ -150,12 +229,12 @@ const state = reactive({
   thumbnailSuffix: '',
   title: '',
   favicon: "",
-  css:"",
-  js:"",
-  beianNo:""
+  css: "",
+  js: "",
+  beianNo: ""
 })
 
-const { data: res } = await useFetch<{ data: typeof state }>('/api/user/settings/full',{key:'settings'})
+const { data: res } = await useFetch<{ data: typeof state }>('/api/user/settings/full', { key: 'settings' })
 const data = res.value?.data
 state.username = data?.username || 'admin'
 state.title = data?.title || '极简朋友圈'

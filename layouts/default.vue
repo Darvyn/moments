@@ -12,8 +12,6 @@
 
   <Toaster position="top-center" rich-colors />
 
-
-
 </template>
 
 <script setup lang="ts">
@@ -25,8 +23,10 @@ const userinfo = useState<User>('userinfo')
 await callOnce(async () => {
   const { data: res } = await useAsyncData('userinfo', async () => await $fetch('/api/user/settings/get'))
   userinfo.value = res.value?.data as any as User
-
 })
+
+const config = useRuntimeConfig()
+
 
 useHead({
   link: [
@@ -48,4 +48,15 @@ useHead({
     }
   ]
 })
+
+if (config.public.googleRecaptchaSiteKey) {
+  useHead({
+    script: [
+      {
+        type: 'text/javascript',
+        src: 'https://recaptcha.net/recaptcha/api.js?render='+config.public.googleRecaptchaSiteKey
+      }
+    ]
+  })
+}
 </script>

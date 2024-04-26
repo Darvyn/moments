@@ -3,6 +3,7 @@
 ![moments github action status](https://img.shields.io/github/actions/workflow/status/kingwrcy/moments/deploy.yml)
 [![docker pull](https://img.shields.io/docker/pulls/kingwrcy/moments)](https://hub.docker.com/repository/docker/kingwrcy/moments)
 
+[更新记录](https://github.com/kingwrcy/moments/blob/master/release.md)
 
 [tg交流群](https://t.me/simple_moments)
 
@@ -11,6 +12,8 @@ S3兼容的对象存储配置方法(不是必须的,只有你需要把图片存�
 [Cloudflare R2配置](https://jerry.mblog.club/moments-r2-config)  
 
 [阿里云OSS配置](https://jerry.mblog.club/moments-config-aliyun)
+
+又拍云 不支持[使用预签名 URL 上传对象](https://docs.aws.amazon.com/zh_cn/AmazonS3/latest/userguide/PresignedUrlUploadObject.html),所以不支持又拍云.
 
 
 [在线DEMO](https://m.mblog.club),欢迎体验.
@@ -24,10 +27,66 @@ S3兼容的对象存储配置方法(不是必须的,只有你需要把图片存�
 - 适配手机
 - 支持暗黑模式
 - 数据库采用sqlite,可随时备份
+- 支持引入豆瓣读书/豆瓣电影,样式来源于[这里](https://github.com/TankNee/hexo-douban-card/blob/master/templates/assets/style.css)
 
 有其他需求欢迎提issues.
 
 默认用户名密码:`admin/a123456`,登录进去后后台可以自己修改密码.
+
+## 自定义其他配置
+
+鉴于萝卜青菜各有所爱,每个人情况不一致,特此使用配置文件配置各项特性化需求,目前支持以下环境变量配置见.
+
+同时也支持使用配置文件的方式,环境变量的优先级高于配置文件.
+
+配置文件的使用方法:docker启动时把配置文件挂载进去,挂载目录为
+
+```
+/app/data/config.properties
+```
+
+你可以先复制[这个文件](https://github.com/kingwrcy/moments/blob/master/config.properties),修改,然后挂载进docker内就可以了.
+
+<details>
+
+<summary>点我查看支持的个性化配置</summary>
+
+| KEY  | 默认值 | 描述 |
+| ------------- | ------------- | ------------- |
+| NUXT_PUBLIC_PAGE_SIZE  | 10  | 分页大小 |
+| NUXT_PUBLIC_MOMENTS_COMMENT_ENABLE  | true  | 是否开启评论 |
+| NUXT_PUBLIC_MOMENTS_SHOW_COMMENT  | true  | 是否显示评论 |
+| NUXT_PUBLIC_MOMENTS_COMMENT_MAX_LENGTH  | 120  | 评论最大字数 |
+| NUXT_PUBLIC_MOMENTS_COMMENT_ORDER_BY  | desc  | 评论的显示顺序,desc:倒序,asc:顺序 |
+| NUXT_PUBLIC_MOMENTS_TOOLBAR_ENABLE_DOUBAN  | true  | 是否显示引入豆瓣读书/视频按钮 |
+| NUXT_PUBLIC_MOMENTS_TOOLBAR_ENABLE_MUSIC163  | true  | 是否显示引入网易云音乐按钮 |
+| NUXT_PUBLIC_MOMENTS_TOOLBAR_ENABLE_VIDEO  | true  | 是否显示引入youtube,b站,在线视频按钮 |
+| NUXT_PUBLIC_MOMENTS_MAX_LINE  | 4  | 单条发言最大行数,最大10行,超过折叠 |
+| NUXT_PUBLIC_GOOGLE_RECAPTCHA_SITE_KEY  | 无  | google recaptchaV3 HTML 代码中使用此网站密钥 |
+| NUXT_GOOGLE_RECAPTCHA_SECRET_KEY  | 无  | google recaptchaV3 网站和 reCAPTCHA 之间的通信密钥 |
+| NUXT_PUBLIC_SITE_URL  | 无  | 实例的访问地址 |
+| NUXT_ENABLE_NOTIFY_BY_EMAIL  | false  | 是否启用评论通知 |
+| NUXT_NOTIFY_MAIL  | 无  | 管理员邮箱 |
+| NUXT_MAIL_HOST  | 无  | 邮件服务器地址 |
+| NUXT_MAIL_PORT  | 587  | 邮件服务器端口 |
+| NUXT_MAIL_SECURE  | false  | 邮件服务器是否是安全连接 |
+| NUXT_MAIL_NAME  | 无  | 发件邮箱用户名 |
+| NUXT_MAIL_PASSWORD  | 无  | 发件邮箱密码 |
+| NUXT_MAIL_FROM  | 无  | 发件人邮箱 |
+| NUXT_MAIL_FROM_NAME  | 无  | 发件人名称 |
+| NUXT_ALIYUN_TEXT_JUDGE_ENABLE  | false  | 是否启用阿里云文本审核(只针对评论) |
+| NUXT_ALIYUN_ACCESS_KEY_ID  | 无  | 阿里云AK |
+| NUXT_ALIYUN_ACCESS_KEY_SECRET  | 无  | 阿里云SK |
+</details>
+
+
+
+
+## 使用google recaptchaV3(可选)
+
+自行去[google recaptchaV3 admin console](https://www.google.com/recaptcha/admin/create)开通,每月100万次免费调用.
+开通成功后复制网站密钥和通信密钥,填入上方的环境变量对应的key里面.
+
 
 ## Docker启动
 Docker首次启动看[这里](https://github.com/kingwrcy/moments/blob/master/docker-start.sh)
@@ -71,7 +130,7 @@ npx prisma studio
 执行上面的命令会在容器内部暴露一个5555端口,暴露到主机后可以通过 `http://容器IP:5555` 访问数据库,直接修改/删除/新增数据.
 
 
-## 配置S3
+## 配置S3(可选)
 
 由于使用了[使用预签名 URL 上传对象](https://docs.aws.amazon.com/zh_cn/AmazonS3/latest/userguide/PresignedUrlUploadObject.html)方案来上传图片到S3,简单来说就是前端直接上传文件到S3,不经过服务端.
 

@@ -2,11 +2,13 @@ import prisma from "~/lib/db";
 
 type ListMemoReq = {
   page: number;
+  size: number;
 };
 
 export default defineEventHandler(async (event) => {
-  const { page } = (await readBody(event)) as ListMemoReq;
-  const size = 10;
+  const config = useRuntimeConfig()
+
+  const { page ,size} = (await readBody(event)) as ListMemoReq;
   let data = await prisma.memo.findMany({
     include: {
       user: {
@@ -20,8 +22,9 @@ export default defineEventHandler(async (event) => {
         },
       },
       comments: {
+        //@ts-ignore
         orderBy: {
-          createdAt: "desc",
+          createdAt: config.public.momentsCommentOrderBy,
         },
         take: 5,
       },
@@ -57,7 +60,7 @@ export default defineEventHandler(async (event) => {
           orderBy: {
             createdAt: "desc",
           },
-          take: size,
+          take: 5,
         },
         _count: {
           select: {

@@ -1,9 +1,21 @@
-const animate = require("tailwindcss-animate")
+const animate = require("tailwindcss-animate");
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
-  safelist: ["dark"],
+  safelist: [
+    "dark",
+    "line-clamp-1",
+    "line-clamp-2",
+    "line-clamp-3",
+    "line-clamp-4",
+    "line-clamp-5",
+    "line-clamp-6",
+    "line-clamp-7",
+    "line-clamp-8",
+    "line-clamp-9",
+    "line-clamp-10",
+  ],
   prefix: "",
   postcss: {
     plugins: {
@@ -20,6 +32,12 @@ module.exports = {
       },
     },
     extend: {
+      lineClamp: {
+        7: "7",
+        8: "8",
+        9: "9",
+        10: "10",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -56,7 +74,7 @@ module.exports = {
         },
       },
       borderRadius: {
-      	xl: "calc(var(--radius) + 4px)",
+        xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
@@ -69,23 +87,13 @@ module.exports = {
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
-        },
-        "collapsible-down": {
-          from: { height: 0 },
-          to: { height: 'var(--radix-collapsible-content-height)' },
-        },
-        "collapsible-up": {
-          from: { height: 'var(--radix-collapsible-content-height)' },
-          to: { height: 0 },
-        },
+        },      
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "collapsible-down": "collapsible-down 0.2s ease-in-out",
-        "collapsible-up": "collapsible-up 0.2s ease-in-out",
       },
     },
   },
   plugins: [animate],
-}
+};

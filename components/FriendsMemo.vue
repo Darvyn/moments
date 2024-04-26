@@ -1,7 +1,7 @@
 <template>
 
   <div class="memo flex flex-row gap-2 sm:gap-4 text-sm border-x-0 pt-2 p-2 sm:p-4"
-    :class="{ 'bg-slate-100 dark:bg-neutral-700': props.memo.pinned }">
+    :class="{ 'bg-slate-100 dark:bg-neutral-800': props.memo.pinned }">
     <img :src="props.memo.user.avatarUrl" class="avatar w-9 h-9 rounded" />
     <div class="flex flex-col gap-.5 flex-1">
       <div class="flex flex-row justify-between items-center">
@@ -23,18 +23,20 @@
       <iframe class="w-full h-[250px] my-2" v-if="props.memo.bilibiliUrl" :src="props.memo.bilibiliUrl" scrolling="no"
         border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
 
+      <iframe class="w-full h-[250px] my-2" v-if="memoExt.youtubeUrl" :src="memoExt.youtubeUrl" scrolling="no"
+        border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+
+      <video class="w-full h-[250px] my-2" :src="memoExt.videoUrl" controls v-if="memoExt.videoUrl"></video>
+
       <DoubanBook :book="memoExt.doubanBook" v-if="memoExt.doubanBook" />
       <DoubanMovie :movie="memoExt.doubanMovie" v-if="memoExt.doubanMovie" />
 
-      <div v-if="props.memo.imgs">
-        <FancyBox class="grid my-1 gap-2" :style="`grid-template-columns: repeat(${gridCols}, minmax(0, 1fr))`"
-          :options="{
-      Carousel: {
-        infinite: false,
-      },
-    }">
-          <img loading="lazy" :src="getImgUrl(img)" class="max-h-[200px] cursor-pointer rounded"
-            v-for="(img, index) in props.memo.imgs?.split(',')" :key="index" />
+      <div v-if="imgs.length">
+        <FancyBox class="grid my-1 gap-0.5" :style="gridStyle"
+                  :options="{ Carousel: { infinite: false } }">
+          <img loading="lazy" :src="getImgUrl(img)" class="cursor-zoom-in rounded"
+               :class="imgs.length === 1 ? 'full-cover-image-single' : 'full-cover-image-mult'"
+               v-for="(img, index) in imgs" :key="index" />
         </FancyBox>
       </div>
       <div class="text-[#576b95] cursor-pointer" v-if="hh > maxHeight && !showAll" @click="showMore">全文</div>
@@ -55,17 +57,17 @@
             <div class="flex flex-row gap-2 cursor-pointer items-center" v-if="token"
               @click="pinned(); showToolbar = false">
               <Pin :size=14 />
-              <div>{{ (props.memo.pinned ? '取消' : '') + '置顶' }}</div>
+              <div class="hidden md:block">{{ (props.memo.pinned ? '取消' : '') + '置顶' }}</div>
             </div>
-            <div class="flex flex-row gap-2 cursor-pointer items-center" v-if="token" @click="editMemo">
+            <div class="flex flex-row gap-2 cursor-pointer items-center" v-if="token && !route.path.startsWith('/detail')" @click="editMemo">
               <FilePenLine :size=14 />
-              <div>编辑</div>
+              <div class="hidden md:block">编辑</div>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <div class="flex flex-row gap-2 cursor-pointer items-center" v-if="token">
                   <Trash2 :size=14 />
-                  <div>删除</div>
+                  <div class="hidden md:block">删除</div>
                 </div>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -85,13 +87,14 @@
             <div class="flex flex-row gap-2 cursor-pointer items-center" @click="like">
               <Heart :size=14 v-if="likeList.findIndex((id) => id === props.memo.id) < 0" />
               <HeartCrack :size=14 v-else />
-              <div>{{ likeList.findIndex((id) => id === props.memo.id) >= 0 ? '取消' : '赞' }}</div>
+              <div class="hidden md:block">{{ likeList.findIndex((id) => id === props.memo.id) >= 0 ? '取消' : '赞' }}</div>
             </div>
 
             <div class="flex flex-row gap-2 cursor-pointer items-center"
-              @click="showCommentInput = !showCommentInput; showUserCommentArray = []; showToolbar = false">
+              v-if="config.public.momentsCommentEnable"
+              @click="momentsShowCommentInput = !momentsShowCommentInput; showUserCommentArray = []; showToolbar = false">
               <MessageSquareMore :size=14 />
-              <div>评论</div>
+              <div class="hidden md:block">评论</div>
             </div>
           </div>
         </div>
@@ -101,13 +104,13 @@
           <Heart :size=14 color="#C64A4A" />
           <div class="text-[#576b95]"><span class="mx-1">{{ props.memo.favCount }}</span>位访客赞过</div>
         </div>
-        <FriendsCommentInput :memoId="props.memo.id" @commentAdded="refreshComment" v-if="showCommentInput" />
-        <template v-if="props.memo.comments.length > 0">
+        <FriendsCommentInput :memoId="props.memo.id" @commentAdded="refreshComment" v-if="momentsShowCommentInput" />
+        <template v-if="props.memo.comments.length > 0 && config.public.momentsShowComment">
           <div class="px-4 py-2 flex flex-col gap-1">
             <div class="relative flex flex-col gap-2 text-sm" v-for="(comment, index) in props.memo.comments"
               :key="index">
               <Comment :comment="comment" @memo-update="refreshComment" :index="index"
-                @comment-started="showCommentInput = false" />
+                @comment-started="momentsShowCommentInput = false" />
             </div>
             <div v-if="props.memo._count.comments > 5 && props.showMore" class="text-[#576b95] cursor-pointer"
               @click="navigateTo(`/detail/${props.memo.id}`)">查看更多...</div>
@@ -144,16 +147,22 @@ dayjs.extend(relativeTime)
 const props = withDefaults(
   defineProps<{
     memo: Memo,
-    showMore: boolean
+    showMore: boolean,
+    index?: number
+
   }>(), {}
 )
+const config = useRuntimeConfig()
+const route = useRoute()
 
 const emit = defineEmits(['memo-update'])
-const maxHeight = ref(24*4)
+const maxLine = config.public.momentsMaxLine
+const maxHeight = ref(24 * maxLine)
+
 
 const showAll = ref(false)
 const showToolbar = ref(false)
-const showCommentInput = ref(false)
+const momentsShowCommentInput = ref(false)
 const toolbarRef = ref(null)
 const showUserCommentArray = useState<Array<boolean>>('showUserCommentArray_' + props.memo.id, () => [])
 const el = ref<any>(null)
@@ -163,10 +172,27 @@ const likeList = useStorage<Array<number>>('likeList', [])
 
 const memoExt = computed(() => JSON.parse(props.memo.ext || '{}') as MemoExt)
 
-const gridCols = computed(() => {
-  const imgLen = (props.memo.imgs || '').split(',').length;
-  return imgLen >= 3 ? 3 : imgLen
-})
+const imgs = computed(() => props.memo.imgs ? props.memo.imgs.split(',') : []);
+const gridStyle = computed(() => {
+  let style = 'align-items: start;'; // 确保内容顶部对齐
+  switch (imgs.value.length) {
+    case 1:
+      style += 'grid-template-columns: 1fr;';
+      break;
+    case 2:
+      style += 'grid-template-columns: 1fr 1fr; aspect-ratio: 2 / 1;';
+      break;
+    case 3:
+      style += 'grid-template-columns: 1fr 1fr 1fr; aspect-ratio: 3 / 1;';
+      break;
+    case 4:
+      style += 'grid-template-columns: 1fr 1fr; aspect-ratio: 1;';
+      break;
+    default:
+      style += 'grid-template-columns: 1fr 1fr 1fr; aspect-ratio: 3 / 1;';
+  }
+  return style;
+});
 
 const like = async () => {
   showToolbar.value = false
@@ -219,14 +245,14 @@ const removeMemo = async () => {
 
 const editMemo = async () => {
   showToolbar.value = false
-  memoUpdateEvent.emit(props.memo)
+  memoUpdateEvent.emit({ ...props.memo, index: props.index })
 }
 
 
 const refreshComment = async () => {
   emit('memo-update', props.memo)
   showUserCommentArray.value = []
-  showCommentInput.value = false
+  momentsShowCommentInput.value = false
 }
 
 
@@ -236,11 +262,11 @@ onClickOutside(toolbarRef, () => showToolbar.value = false)
 
 const showMore = () => {
   showAll.value = true
-  el.value.classList.remove(`line-clamp-${maxHeight.value/24}`)
+  el.value.classList.remove(`line-clamp-${maxLine}`)
 }
 const showLess = () => {
   showAll.value = false
-  el.value.classList.add(`line-clamp-${maxHeight.value/24}`)
+  el.value.classList.add(`line-clamp-${maxLine}`)
 }
 
 
@@ -248,8 +274,28 @@ const showLess = () => {
 watchOnce(height, () => {
   hh.value = height.value
   if (height.value > maxHeight.value) {
-    el.value.classList.add(`line-clamp-${maxHeight.value/24}`)
+    el.value.classList.add(`line-clamp-${maxLine}`)
   }
 })
 
 </script>
+
+<style scoped>
+.full-cover-image-mult {
+  object-fit: cover;
+  object-position: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: transparent 1px solid;
+}
+
+.full-cover-image-single {
+  object-fit: cover;
+  object-position: center;
+  max-height: 200px;
+  height: auto;
+  width: auto;
+  min-width: 50%;
+  border: transparent 1px solid;
+}
+</style>

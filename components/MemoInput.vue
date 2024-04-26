@@ -1,5 +1,5 @@
 <template>
-  <div class="p-2 sm:p-4 pb-2 border-b dark:border-white">
+  <div class="p-2 sm:p-4 pb-2 border-b dark:border-[#C0BEBF]/10">
     <div class="flex flex-row my-2 ">
       <div class="flex flex-1 gap-2 items-center">
         <Popover :open="linkOpen">
@@ -47,7 +47,7 @@
           <input type="file" id="imgUpload" class="hidden" name="file" @change="uploadImgs">
         </Label>
 
-        <Popover :open="music163Open">
+        <Popover :open="music163Open" v-if="config.public.momentsToolbarEnableMusic163">
           <PopoverTrigger as="div">
             <TooltipProvider>
               <Tooltip>
@@ -75,7 +75,7 @@
         </Popover>
 
 
-        <Popover :open="bilibiliOpen">
+        <Popover :open="bilibiliOpen" v-if="config.public.momentsToolbarEnableVideo">
           <PopoverTrigger as="div">
             <TooltipProvider>
               <Tooltip>
@@ -90,25 +90,40 @@
 
           </PopoverTrigger>
           <PopoverContent as-child @interact-outside="bilibiliOpen = false">
-            <div class="">
-              <div class=" text-xs my-2 flex justify-between"><span>嵌入B站视频</span>
-                <NuxtLink to="https://jerry.mblog.club/simple-moments-import-music-and-video"
-                  class="text-gray-500 underline">
-                  如何获取?</NuxtLink>
+            <div class="flex flex-col gap-2">
+              <div class="flex flex-col gap-2">
+                <div class=" text-xs  flex justify-between"><span>嵌入B站视频</span>
+                  <NuxtLink to="https://jerry.mblog.club/simple-moments-import-music-and-video"
+                    class="text-gray-500 underline">
+                    如何获取?</NuxtLink>
+                </div>
+                <Input class="my-2" placeholder="请输入B站视频代码" v-model="bilibiliUrl" />
               </div>
-              <Input class="my-2" placeholder="请输入B站视频代码" v-model="bilibiliUrl" />
-              <Button size="sm" @click="importBiliBili">提交</Button>
+
+              <div class="flex flex-col gap-2">
+                <div class=" text-xs  flex justify-between"><span>嵌入Youtube视频</span></div>
+                <Input class="my-2" placeholder="请输入Youtube视频链接" v-model="youtubeUrl" />
+              </div>
+
+
+              <div class="flex flex-col gap-2">
+                <div class=" text-xs  flex justify-between"><span>嵌入在线视频</span>
+
+                </div>
+                <Input class="my-2" placeholder="请输入在线视频地址" v-model="videoUrl" />
+              </div>
+              <Button size="sm" @click="importVideo">提交</Button>
             </div>
           </PopoverContent>
         </Popover>
 
-        <Popover :open="doubanOpen">
+        <Popover :open="doubanOpen" v-if="$config.public.momentsToolbarEnableDouban">
           <PopoverTrigger as="div">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <img class="w-[18px] h-[18px]" src="https://img1.doubanio.com/favicon.ico"
-                    @click="doubanOpen = true" />
+                  <img src="https://www.douban.com/favicon.ico" @click="doubanOpen = true" t="1713855207689"
+                    class="focus:outline-0 cursor-pointer w-[18px] h-[18px] " />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>引入豆瓣读书和豆瓣电影</p>
@@ -119,7 +134,6 @@
           </PopoverTrigger>
           <PopoverContent as-child @interact-outside="doubanOpen = false">
             <div class="">
-              <div class=" text-xs my-2 flex justify-between">引入豆瓣读书和豆瓣电影</div>
               <RadioGroup :default-value="douban.type" class="flex flex-row gap-2 text-sm" v-model="douban.type">
                 <div class="flex items-center space-x-2">
                   <RadioGroupItem id="book" value="book" />
@@ -183,6 +197,11 @@
     <iframe class="w-full h-[250px] my-2" v-if="bilibiliIfrUrl" :src="bilibiliIfrUrl" scrolling="no" border="0"
       frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
 
+    <iframe class="w-full h-[250px] my-2" v-if="youtubeIfrUrl" :src="youtubeIfrUrl" scrolling="no" border="0"
+      frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+
+    <video class="w-full h-[250px] my-2" :src="videoIfrUrl" controls v-if="videoIfrUrl"></video>
+
     <DoubanBook :book="doubanBook" v-if="doubanBook" />
     <DoubanMovie :movie="doubanMovie" v-if="doubanMovie" />
 
@@ -200,9 +219,9 @@
 
     <div class="grid grid-cols-3 my-2 gap-2" v-if="imgs && imgs.length > 0">
       <div v-for="(img, index) in imgs" :key="index" class="relative">
-        <img :src="getImgUrl(img)" class="rounded" />
+        <img :src="getImgUrl(img)" class="rounded object-cover h-full aspect-square" />
         <Trash2 color="#379d1b" :size="15" class="absolute top-1 right-1 cursor-pointer"
-          @click="imgs.splice(index, 1)" />
+          @click="removePreviewImg(index)" />
       </div>
     </div>
     <div class="flex flex-row justify-between mt-2 items-center gap-2 ">
@@ -234,11 +253,13 @@ import type { DoubanBook, DoubanMovie, Memo, MemoExt } from '~/lib/types';
 import { useAnimate } from '@vueuse/core';
 import { Image, Music4, Settings, Trash2, LogOut, Link, Youtube, CircleX, Check, Loader2 } from 'lucide-vue-next'
 
+const config = useRuntimeConfig()
+
 const textareaRef = ref()
 const showEmojiRef = ref<HTMLElement>()
 const keyframes = { transform: 'rotate(360deg)' }
 const showEmoji = ref(false)
-const emit = defineEmits(['memoAdded'])
+const emit = defineEmits(['memoAdded', 'memoUpdated'])
 const toggleShowEmoji = () => {
   showEmoji.value = !showEmoji.value
   useAnimate(showEmojiRef.value, keyframes, { duration: 1000, easing: 'ease-in-out' })
@@ -256,6 +277,10 @@ const music163Url = ref('')
 const music163IfrUrl = ref('')
 const music163Open = ref(false)
 
+const youtubeUrl = ref('')
+const youtubeIfrUrl = ref('')
+const videoUrl = ref('')
+const videoIfrUrl = ref('')
 const bilibiliUrl = ref('')
 const bilibiliIfrUrl = ref('')
 const bilibiliOpen = ref(false)
@@ -321,6 +346,7 @@ const addLink = async () => {
     externalFetchError.value = true
   }
 }
+const memoUpdateIndex = useState<number>('memoUpdateIndex', () => -1)
 
 const imgs = ref<string[]>([])
 const submitMemo = async () => {
@@ -339,18 +365,24 @@ const submitMemo = async () => {
       ext: {
         doubanBook: doubanBook.value,
         doubanMovie: doubanMovie.value,
+        youtubeUrl: youtubeIfrUrl.value,
+        videoUrl: videoIfrUrl.value
       }
     })
   })
   if (res.success) {
     toast.success('提交成功')
     content.value = ''
-    id.value = -1
+
     imgs.value = []
     music163IfrUrl.value = ''
     music163Url.value = ''
     bilibiliIfrUrl.value = ''
     bilibiliUrl.value = ''
+    videoIfrUrl.value = ''
+    videoUrl.value = ''
+    youtubeIfrUrl.value = ''
+    youtubeUrl.value = ''
     location.value = ''
     externalFavicon.value = ''
     externalTitle.value = ''
@@ -360,10 +392,21 @@ const submitMemo = async () => {
     doubanMovie.value = undefined
     douban.id = ''
     douban.type = 'book'
-    emit('memoAdded')
+    emit(id.value > 0 ? 'memoUpdated' : 'memoAdded')
+    id.value = -1
   } else {
     toast.warning('提交失败')
   }
+}
+
+const removePreviewImg = async (index: number) => {
+  await $fetch('/api/files/removePreviewImg', {
+    method: 'POST',
+    body: JSON.stringify({
+      path: imgs.value[index]
+    })
+  })
+  imgs.value.splice(index, 1)
 }
 
 const token = useCookie('token')
@@ -459,17 +502,28 @@ const importMusic = () => {
 }
 
 
-const importBiliBili = () => {
-  if (bilibiliUrl.value === '') {
-    toast.warning('请输入B站视频代码')
+const importVideo = () => {
+  if (bilibiliUrl.value === '' && videoUrl.value === '' && youtubeUrl.value === '') {
+    toast.warning('请输入视频地址/代码')
     return
   }
-  const match = bilibiliUrl.value.match(/src="(.*?)"/)
-  if (match && match.length > 1) {
-    const url = match[1]
-    bilibiliIfrUrl.value = url + '&autoplay=0&high_quality=1&as_wide=1'
-    bilibiliOpen.value = false
+  if (bilibiliUrl.value) {
+    const match = bilibiliUrl.value.match(/src="(.*?)"/)
+    if (match && match.length > 1) {
+      const url = match[1]
+      bilibiliIfrUrl.value = url + '&autoplay=0&high_quality=1&as_wide=1'
+    }
+  } else if (youtubeUrl.value) {
+    const match = youtubeUrl.value.match(/v=([^&#]+)/)
+    if (match && match.length > 1) {
+      const id = match[1]
+      youtubeIfrUrl.value = `https://www.youtube.com/embed/${id}?autoplay=0&frameborder="0"`
+    }
+  } else if (videoUrl.value) {
+    // https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4
+    videoIfrUrl.value = videoUrl.value
   }
+  bilibiliOpen.value = false
 }
 
 
@@ -480,7 +534,8 @@ const emojiSelected = (emoji: string) => {
   content.value = target.value!
   // showEmoji.value = false
 }
-memoUpdateEvent.on((event: Memo) => {
+memoUpdateEvent.on((event: Memo & { index: number }) => {
+  memoUpdateIndex.value = event.index
   content.value = event.content
   id.value = event.id
   if (event.imgs) {
@@ -493,6 +548,8 @@ memoUpdateEvent.on((event: Memo) => {
   const memoExt = JSON.parse(event.ext || '{}') as MemoExt
   doubanBook.value = memoExt.doubanBook
   doubanMovie.value = memoExt.doubanMovie
+  youtubeIfrUrl.value = memoExt.youtubeUrl
+  videoIfrUrl.value = memoExt.videoUrl
 })
 </script>
 

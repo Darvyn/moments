@@ -22,14 +22,18 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useAnimate, useStorage } from '@vueuse/core'
 import { insertTextAtCursor } from '~/lib/utils';
+import type { User } from '~/lib/types';
 
+const userinfo = useState<User>('userinfo')
+const config = useRuntimeConfig()
 const textareaRef = ref()
+const token = useCookie('token')
 const content = ref('')
 const placeholder = ref('发表评论')
 const emit = defineEmits(['commentAdded'])
 const showEmoji = ref(false)
 const keyframes = { transform: 'rotate(360deg)' }
-const props = defineProps<{ memoId: number, reply?: string }>()
+const props = defineProps<{ memoId: number, reply?: string, replyId?: number }>()
 const showEmojiRef = ref<HTMLElement>()
 const info = useStorage('anonymous', {
   email: '',
@@ -41,6 +45,9 @@ const info = useStorage('anonymous', {
 
 onMounted(() => {
   textareaRef.value?.getRef().focus()
+  if (token.value && userinfo.value && userinfo.value.nickname) {
+    info.value.username = userinfo.value.nickname
+  }
 })
 
 const toggleShowEmoji = () => {
@@ -62,10 +69,38 @@ const saveComment = async () => {
     toast.warning('先填写评论')
     return
   }
+  if (content.value.length > config.public.momentsCommentMaxLength) {
+    toast.warning('评论超长')
+    return
+  }
   if (!info.value.username) {
     toast.warning('用户名必填')
     return
   }
+  if (info.value.username.length > 10) {
+    toast.warning('用户名')
+    return
+  }
+  if (info.value.website.length > 100) {
+    toast.warning('网站地址超长')
+    return
+  }
+
+  if (config.public.googleRecaptchaSiteKey) {
+    //@ts-ignore
+    grecaptcha.ready(function () {
+      //@ts-ignore
+      grecaptcha.execute(config.public.googleRecaptchaSiteKey, { action: 'submit' }).then(async function (token) {
+        submitComment(token)
+      });
+    });
+  } else {
+    submitComment()
+  }
+
+}
+
+const submitComment = async (token?: string) => {
   pending.value = true
   const res = await $fetch('/api/comment/save', {
     method: 'POST',
@@ -73,10 +108,12 @@ const saveComment = async () => {
       content: content.value,
       memoId: props.memoId,
       replyTo: props.reply,
+      replyToId: props.replyId,
       author: false,
       email: info.value.email,
       website: info.value.website,
-      username: info.value.username
+      username: info.value.username,
+      token
     })
   })
 
@@ -85,7 +122,7 @@ const saveComment = async () => {
     content.value = ''
     emit('commentAdded')
   } else {
-    toast.warning('评论失败')
+    toast.warning(res.message || '评论失败')
   }
   pending.value = false
 }
